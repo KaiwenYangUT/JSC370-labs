@@ -90,7 +90,7 @@ Once you are done setting up the project, you can now start working with the MET
 
 1. Load the `data.table` (and the `dtplyr` and `dplyr` packages), `mgcv`, `ggplot2`, `leaflet`, `kableExtra`.
 
-```{r packages warnings=FALSE}
+```{r}
 library(data.table)
 library(dtplyr)
 library(dplyr)
@@ -101,7 +101,7 @@ library(kableExtra)
 ```
 
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 fn <- "https://raw.githubusercontent.com/JSC370/JSC370-2024/main/data/met_all_2023.gz"
 if (!file.exists("met_all_2023.gz"))
   download.file(fn, destfile = "met_all_2023.gz")
@@ -110,7 +110,7 @@ met <- data.table::fread("met_all_2023.gz")
 
 2. Load the met data from https://github.com/JSC370/JSC370-2024/main/data/met_all_2023.gz or  (Use https://raw.githubusercontent.com/JSC370/JSC370-2024/main/data/met_all_2023.gz to download programmatically), and also the station data. For the latter, you can use the code we used during lecture to pre-process the stations data:
 
-```{r stations-data, eval = FALSE}
+```{r stations-data, eval = TRUE}
 # Download the data
 stations <- fread("ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-history.csv")
 stations[, USAF := as.integer(USAF)]
@@ -131,11 +131,31 @@ stations[, n := 1:.N, by = .(USAF)]
 stations <- stations[n == 1,][, n := NULL]
 
 # Read in the met data and fix lat, lon, temp
+
+```
+```{r}
+# Some EDA codes from last week
+met$lat <- met$lat/1000
+met$lon <- met$lon/1000
+met$wind.sp <- met$wind.sp/10
+met$temp <- met$temp/10
+met$dew.point <- met$dew.point/10
+met$atm.press <- met$atm.press/10
+
+# Relative Humidity
+met$rh <- 100*((112-0.1*met$temp+met$dew.point)/(112+0.9*met$temp))^8
+
+# Filter out implausible longitude and latitude values
+met <- met[abs(met$lon) <= 180 | abs(met$lat) <= 90,]
+
+# Filter out implausible humidity values
+met <- met[met$rh >= 0 & met$rh <= 100,]
 ```
 
 3. Merge the data as we did during the lecture. Use the `merge()` code and you can also try the tidy way with `left_join()`
 
 ```{r}
+merged_data <- merge(met, stations, by.x = "USAFID", by.y = "USAF", all.x = TRUE)
 
 ```
 
@@ -144,13 +164,39 @@ stations <- stations[n == 1,][, n := NULL]
 Across all weather stations, which stations have the median values of temperature, wind speed, and atmospheric pressure? Using the `quantile()` function, identify these three stations. Do they coincide?
 
 ```{r}
+library(dplyr)
 
+medians <- merged_data[, .(
+  temp_50= quantile(temp, probs=0.5, na.rm=TRUE),
+  wind.sp_50 = quantile(wind.sp, probs=0.5, na.rm=TRUE),
+  atm.press_50 = quantile(atm.press, probs=0.5, na.rm=TRUE)
+)]
+medians
 ```
 
 Next identify the stations have these median values.
 
 ```{r}
+station_med <- merged_data[, .(
+  temp_50= quantile(temp, probs=0.5, na.rm=TRUE),
+  wind.sp_50 = quantile(wind.sp, probs=0.5, na.rm=TRUE),
+  atm.press_50 = quantile(atm.press, probs=0.5, na.rm=TRUE)
+), by=.(USAFID, STATE)]
 
+station_med[, temp_dist:=abs(temp_50 - medians$temp_50)]
+median_temp_stations <- station_med[temp_dist == 0]
+median_temp_stations
+
+station_med[, wind.sp_dist:=abs(wind.sp_50 - medians$wind.sp_50)]
+median_wind.sp_stations <- station_med[wind.sp_dist == 0]
+median_wind.sp_stations
+
+station_med[, atm.press_dist:=abs(atm.press_50 - medians$atm.press_50)]
+median_atm.press_stations <- station_med[atm.press_dist == 0]
+median_atm.press_stations
+
+coincide <- station_med[temp_dist == 0 & wind.sp_dist == 0 & atm.press_dist == 0]
+coincide
 ```
 
 Knit the document, commit your changes, and save it on GitHub. Don't forget to add `README.md` to the tree, the first time you render it.
@@ -160,6 +206,14 @@ Knit the document, commit your changes, and save it on GitHub. Don't forget to a
 Now let's find the weather stations by state with closest temperature and wind speed based on the euclidean distance from these medians. 
 
 ```{r}
+# Calculate Euclidean distance for temperature and wind speed
+station_med[, temp_wind_dist := sqrt((temp_50 - medians$temp_50)^2 + (wind.sp_50 - medians$wind.sp_50)^2)]
+
+# Find the station with the minimum distance per state
+unique_representative_stations <- station_med[, .SD[which.min(temp_wind_dist)], by = STATE]
+
+# Display representative stations per state
+unique_representative_stations[, .(STATE, USAFID, temp_50, wind.sp_50, temp_wind_dist)]
 
 ```
 
