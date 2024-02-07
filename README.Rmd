@@ -225,6 +225,37 @@ For each state, identify which station is closest to the geographic mid-point (m
 
 ```{r}
 library(leaflet)
+
+# Calculate geographic midpoint for each state
+state_midpoints <- unique_representative_stations[, .(
+  median_lat = median(LAT),
+  median_lon = median(LON)
+), by = STATE]
+
+# Find the station closest to each state's geographic midpoint
+closest_stations <- unique_representative_stations[, .SD[which.min(sqrt((median_lat - LAT)^2 + (median_lon - LON)^2))], by = STATE]
+
+# Combine closest stations with the ones identified in the previous question
+all_stations <- rbind(closest_stations, unique_representative_stations)
+
+# Create leaflet map
+map <- leaflet(data = all_stations) %>%
+  addTiles() %>%
+  addMarkers(
+    lng = ~LON, lat = ~LAT,
+    popup = ~paste("Station ID: ", USAFID),
+    color = ifelse(all_stations$STATE %in% closest_stations$STATE, "blue", "red"),
+    radius = 5
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    colors = c("blue", "red"),
+    labels = c("Geographic Median", "Temperature and Wind Speed Median"),
+    title = "Stations"
+  )
+
+# Print the map
+map
 ```
 
 Knit the doc and save it on GitHub.
