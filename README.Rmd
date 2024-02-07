@@ -5,6 +5,7 @@ output:
   tufte::tufte_html:
     css: style.css
 link-citations: yes
+always_allow_html: true
 ---
 
 # Learning goals
@@ -224,38 +225,26 @@ Knit the doc and save it on GitHub.
 For each state, identify which station is closest to the geographic mid-point (median) of the state. Combining these with the stations you identified in the previous question, use `leaflet()` to visualize all ~100 points in the same figure, applying different colors for the geographic median and the temperature and wind speed median.
 
 ```{r}
-library(leaflet)
+# Combine stations closest to geographic median with those closest to temperature and wind speed median
+combined_stations <- rbind(
+  unique_representative_stations,
+  station_med[station_med$temp_wind_dist == 0 & !station_med$USAFID %in% unique_representative_stations$USAFID]
+)
 
-# Calculate geographic midpoint for each state
-state_midpoints <- unique_representative_stations[, .(
-  median_lat = median(LAT),
-  median_lon = median(LON)
-), by = STATE]
-
-# Find the station closest to each state's geographic midpoint
-closest_stations <- unique_representative_stations[, .SD[which.min(sqrt((median_lat - LAT)^2 + (median_lon - LON)^2))], by = STATE]
-
-# Combine closest stations with the ones identified in the previous question
-all_stations <- rbind(closest_stations, unique_representative_stations)
-
-# Create leaflet map
-map <- leaflet(data = all_stations) %>%
+# Visualize using leaflet
+leaflet() %>%
   addTiles() %>%
-  addMarkers(
-    lng = ~LON, lat = ~LAT,
-    popup = ~paste("Station ID: ", USAFID),
-    color = ifelse(all_stations$STATE %in% closest_stations$STATE, "blue", "red"),
-    radius = 5
-  ) %>%
-  addLegend(
-    position = "bottomright",
-    colors = c("blue", "red"),
-    labels = c("Geographic Median", "Temperature and Wind Speed Median"),
-    title = "Stations"
-  )
-
-# Print the map
-map
+  addCircleMarkers(data = stations, 
+                   lat = ~LAT, 
+                   lng = ~LON, 
+                   color = ifelse(merged_data$USAFID %in% unique_representative_stations$USAFID, "green", "red"), 
+                   fillColor = ifelse(merged_data$USAFID %in% unique_representative_stations$USAFID, "green", "red"),
+                   radius = 3) %>%
+  addLegend(position = "bottomright",
+            colors = c("green", "red"),
+            labels = c("Geographic Median", "Temperature & Wind Speed Median"),
+            title = "Stations") %>%
+  addProviderTiles("Esri.WorldImagery", group = "Esri Satellite")
 ```
 
 Knit the doc and save it on GitHub.
