@@ -275,8 +275,51 @@ Let's practice running regression models with smooth functions on X. We need the
 - fit both a linear model and a spline model (use `gam()` with a cubic regression spline on wind speed). Summarize and plot the results from the models and interpret which model is the best fit and why.
 
 ```{r}
+library(ggplot2)
+library(mgcv)
+
+# Create a lazy table with median values per station
+lazy_table <- station_med
+
+# Filter out values of atmospheric pressure outside of the range 1000 to 1020
+lazy_table <- lazy_table[atm.press_50 >= 1000 & atm.press_50 <= 1020, ]
+
+# Scatterplot of temperature and atmospheric pressure with linear regression line and smooth line
+ggplot(lazy_table, aes(x = atm.press_50, y = temp_50)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red") +
+  labs(x = "Atmospheric Pressure", y = "Temperature") +
+  ggtitle("Scatterplot of Temperature and Atmospheric Pressure") +
+  theme_minimal()
+```
+
+```{r}
+# Fit linear model
+linear_model <- lm(temp_50 ~ atm.press_50, data = lazy_table)
+
+# Fit spline model
+spline_model <- gam(temp_50 ~ s(wind.sp_50, bs = "cr"), data = lazy_table)
+
+# Summary of models
+summary(linear_model)
+summary(spline_model)
 
 ```
+
+```{r}
+# Plot results from models
+plot(linear_model)
+plot(spline_model)
+
+```
+Answer:
+
+First, compare the adjusted R-square value of each model. The adjusted R-squared of linear model is 0.2647 which is higher than 0.0514, the adjusted R-squared value of the spline model.
+
+Second, compare the residual plot of each model. It seems that both plot are performing well in terms of distribution around zero and the fitted line. Comparatively, the QQ-plot of the linear model performs better where the scatterplot does not deviate from the fitted line at all.
+
+Overall, the linear model performs better such that it is a better fit.
 
 ## Deliverables
 

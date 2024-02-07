@@ -583,6 +583,110 @@ need the `mgcv` package and `gam()` function to do this.
   regression spline on wind speed). Summarize and plot the results from
   the models and interpret which model is the best fit and why.
 
+``` r
+library(ggplot2)
+library(mgcv)
+
+# Create a lazy table with median values per station
+lazy_table <- station_med
+
+# Filter out values of atmospheric pressure outside of the range 1000 to 1020
+lazy_table <- lazy_table[atm.press_50 >= 1000 & atm.press_50 <= 1020, ]
+
+# Scatterplot of temperature and atmospheric pressure with linear regression line and smooth line
+ggplot(lazy_table, aes(x = atm.press_50, y = temp_50)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red") +
+  labs(x = "Atmospheric Pressure", y = "Temperature") +
+  ggtitle("Scatterplot of Temperature and Atmospheric Pressure") +
+  theme_minimal()
+```
+
+    ## `geom_smooth()` using formula = 'y ~ x'
+
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+``` r
+# Fit linear model
+linear_model <- lm(temp_50 ~ atm.press_50, data = lazy_table)
+
+# Fit spline model
+spline_model <- gam(temp_50 ~ s(wind.sp_50, bs = "cr"), data = lazy_table)
+
+# Summary of models
+summary(linear_model)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = temp_50 ~ atm.press_50, data = lazy_table)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -14.385  -2.613   0.198   2.304  11.624 
+    ## 
+    ## Coefficients:
+    ##                Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)  1175.95049   58.39858   20.14   <2e-16 ***
+    ## atm.press_50   -1.14162    0.05772  -19.78   <2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 3.755 on 1083 degrees of freedom
+    ## Multiple R-squared:  0.2653, Adjusted R-squared:  0.2647 
+    ## F-statistic: 391.2 on 1 and 1083 DF,  p-value: < 2.2e-16
+
+``` r
+summary(spline_model)
+```
+
+    ## 
+    ## Family: gaussian 
+    ## Link function: identity 
+    ## 
+    ## Formula:
+    ## temp_50 ~ s(wind.sp_50, bs = "cr")
+    ## 
+    ## Parametric coefficients:
+    ##             Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)  20.9545     0.1297   161.6   <2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Approximate significance of smooth terms:
+    ##                 edf Ref.df     F p-value    
+    ## s(wind.sp_50) 2.817  3.606 16.31  <2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## R-sq.(adj) =  0.0514   Deviance explained = 5.38%
+    ## GCV = 18.269  Scale est. = 18.205    n = 1083
+
+``` r
+# Plot results from models
+plot(linear_model)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-12-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-12-4.png)<!-- -->
+
+``` r
+plot(spline_model)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-12-5.png)<!-- --> Answer:
+
+First, compare the adjusted R-square value of each model. The adjusted
+R-squared of linear model is 0.2647 which is higher than 0.0514, the
+adjusted R-squared value of the spline model.
+
+Second, compare the residual plot of each model. It seems that both plot
+are performing well in terms of distribution around zero and the fitted
+line. Comparatively, the QQ-plot of the linear model performs better
+where the scatterplot does not deviate from the fitted line at all.
+
+Overall, the linear model performs better such that it is a better fit.
+
 ## Deliverables
 
 - .Rmd file (this file)
