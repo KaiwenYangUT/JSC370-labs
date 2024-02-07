@@ -473,6 +473,10 @@ identified in the previous question, use `leaflet()` to visualize all
 ~100 points in the same figure, applying different colors for the
 geographic median and the temperature and wind speed median.
 
+``` r
+library(leaflet)
+```
+
 Knit the doc and save it on GitHub.
 
 ## Question 4: Summary Table with `kableExtra`
@@ -486,6 +490,80 @@ Use the following breakdown for elevation:
 - Low: elev \< 93
 - Mid: elev \>= 93 and elev \< 401
 - High: elev \>= 401
+
+``` r
+library(knitr)
+
+# Calculate elevation categories
+merged_data[, elevation_category := cut(elev, breaks = c(-Inf, 93, 401, Inf), labels = c("Low", "Mid", "High"))]
+
+# Calculate average temperature for each elevation category within each state
+summary_table <- merged_data[, .(
+  avg_temp = mean(temp, na.rm = TRUE)
+), by = .(STATE, elevation_category)]
+
+# Reshape summary table for better presentation
+summary_table_wide <- reshape(summary_table, idvar = "STATE", timevar = "elevation_category", direction = "wide")
+
+# Rename columns for clarity
+colnames(summary_table_wide) <- c("STATE", "Low Elevation", "Mid Elevation", "High Elevation")
+
+# Print summary table with kable
+summary_table_md <- kable(summary_table_wide, format = "markdown")
+writeLines(summary_table_md, "summary_table.md")
+summary_table_md
+```
+
+| STATE | Low Elevation | Mid Elevation | High Elevation |
+|:------|--------------:|--------------:|---------------:|
+| CA    |     18.168493 |      18.77291 |       18.28147 |
+| TX    |     26.510134 |      28.10119 |       28.75371 |
+| MI    |     18.086806 |      18.55130 |             NA |
+| SC    |            NA |      22.39744 |       23.68426 |
+| IL    |     20.843173 |      22.12500 |             NA |
+| MO    |            NA |      23.75204 |       25.79654 |
+| AR    |     23.723926 |      24.42746 |       25.59598 |
+| OR    |     16.714169 |      16.39100 |       15.20318 |
+| WA    |     16.809634 |      17.81729 |       15.25193 |
+| GA    |            NA |      23.25156 |       24.75861 |
+| MN    |     19.936902 |      21.16681 |       22.66275 |
+| AL    |            NA |      23.79844 |       25.07164 |
+| IN    |            NA |      20.14294 |             NA |
+| NC    |     18.074166 |      21.22338 |       22.85846 |
+| VA    |     17.964222 |      20.50870 |       21.37290 |
+| IA    |     22.067188 |      22.26465 |             NA |
+| PA    |     17.286934 |      19.41418 |       20.38417 |
+| NE    |     21.053404 |      23.48527 |             NA |
+| ID    |     16.424158 |            NA |             NA |
+| WI    |     18.032934 |      19.53827 |             NA |
+| WV    |     17.490616 |      19.33798 |             NA |
+| MD    |     20.552997 |      20.62025 |       21.29812 |
+| AZ    |     23.876864 |      30.37686 |       29.28486 |
+| OK    |     24.014658 |      25.08148 |             NA |
+| WY    |     13.748400 |            NA |             NA |
+| LA    |            NA |      26.13198 |       27.62075 |
+| KY    |     20.178196 |      21.39425 |             NA |
+| FL    |            NA |            NA |       26.66320 |
+| OH    |            NA |      19.48407 |             NA |
+| NJ    |            NA |      19.31963 |       19.97914 |
+| NM    |     22.451541 |            NA |             NA |
+| KS    |     22.099784 |      24.16366 |             NA |
+| ND    |     20.451593 |      21.80981 |             NA |
+| VT    |            NA |      16.91005 |             NA |
+| CO    |     15.198150 |            NA |             NA |
+| MS    |            NA |      24.64754 |       26.36904 |
+| CT    |            NA |      18.78433 |       19.37249 |
+| NV    |     20.852050 |            NA |             NA |
+| UT    |     19.754587 |            NA |             NA |
+| SD    |     20.645196 |      22.79495 |             NA |
+| TN    |     19.457179 |      22.93625 |       26.09351 |
+| NY    |     15.917107 |      18.32753 |       18.76420 |
+| RI    |            NA |      17.46589 |       17.87880 |
+| MA    |            NA |      17.59058 |       17.44824 |
+| DE    |            NA |            NA |       21.42545 |
+| NH    |      7.243417 |      16.79792 |       17.78300 |
+| ME    |     15.329681 |      15.52840 |       15.23070 |
+| MT    |     16.330794 |            NA |             NA |
 
 Knit the document, commit your changes, and push them to GitHub.
 

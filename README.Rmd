@@ -224,7 +224,7 @@ Knit the doc and save it on GitHub.
 For each state, identify which station is closest to the geographic mid-point (median) of the state. Combining these with the stations you identified in the previous question, use `leaflet()` to visualize all ~100 points in the same figure, applying different colors for the geographic median and the temperature and wind speed median.
 
 ```{r}
-
+library(leaflet)
 ```
 
 Knit the doc and save it on GitHub.
@@ -240,7 +240,26 @@ Use the following breakdown for elevation:
 - High: elev >= 401
 
 ```{r}
+library(knitr)
 
+# Calculate elevation categories
+merged_data[, elevation_category := cut(elev, breaks = c(-Inf, 93, 401, Inf), labels = c("Low", "Mid", "High"))]
+
+# Calculate average temperature for each elevation category within each state
+summary_table <- merged_data[, .(
+  avg_temp = mean(temp, na.rm = TRUE)
+), by = .(STATE, elevation_category)]
+
+# Reshape summary table for better presentation
+summary_table_wide <- reshape(summary_table, idvar = "STATE", timevar = "elevation_category", direction = "wide")
+
+# Rename columns for clarity
+colnames(summary_table_wide) <- c("STATE", "Low Elevation", "Mid Elevation", "High Elevation")
+
+# Print summary table with kable
+summary_table_md <- kable(summary_table_wide, format = "markdown")
+writeLines(summary_table_md, "summary_table.md")
+summary_table_md
 ```
 
 
